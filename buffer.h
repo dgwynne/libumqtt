@@ -35,58 +35,64 @@
 #include <sys/types.h>
 
 enum {
-    P_FD_EOF = 0,
-    P_FD_ERR = -1,
-    P_FD_PENDING = -2
+	P_FD_EOF = 0,
+	P_FD_ERR = -1,
+	P_FD_PENDING = -2
 };
 
 struct buffer {
-    uint8_t *head;  /* Head of buffer */
-    uint8_t *data;  /* Data head pointer */
-    uint8_t *tail;  /* Data tail pointer */
-    uint8_t *end;   /* End of buffer */
+	uint8_t		*head;	/* Head of buffer */
+	uint8_t		*data;	/* Data head pointer */
+	uint8_t		*tail;	/* Data tail pointer */
+	uint8_t		*end;	/* End of buffer */
 };
 
-int buffer_init(struct buffer *b, size_t size);
+int	buffer_init(struct buffer *b, size_t size);
 
 /**
  * buffer_resize - realloc memory to specially size
  * @return: 0(success), -1(system error), 1(larger than limit)
  */
-int buffer_resize(struct buffer *b, size_t size);
-void buffer_free(struct buffer *b);
-void buffer_set_limit(struct buffer *b, size_t size);
+int	buffer_resize(struct buffer *b, size_t size);
+void	buffer_free(struct buffer *b);
+void	buffer_set_limit(struct buffer *b, size_t size);
 
 /* Actual data Length */
-static inline size_t buffer_length(const struct buffer *b)
+static inline size_t
+buffer_length(const struct buffer *b)
 {
-    return b->tail - b->data;
+	return (b->tail - b->data);
 }
 
 /* The total buffer size  */
-static inline size_t buffer_size(const struct buffer *b)
+static inline size_t
+buffer_size(const struct buffer *b)
 {
-    return b->end - b->head;
+	return (b->end - b->head);
 }
 
-static inline size_t buffer_headroom(const struct buffer *b)
+static inline size_t
+buffer_headroom(const struct buffer *b)
 {
-    return b->data - b->head;
+	return (b->data - b->head);
 }
 
-static inline size_t buffer_tailroom(const struct buffer *b)
+static inline size_t
+buffer_tailroom(const struct buffer *b)
 {
-    return b->end - b->tail;
+	return (b->end - b->tail);
 }
 
-static inline void *buffer_data(const struct buffer *b)
+static inline void *
+buffer_data(const struct buffer *b)
 {
-    return b->data;
+	return b->data;
 }
 
-static inline void buffer_reclaim(struct buffer *b)
+static inline void
+buffer_reclaim(struct buffer *b)
 {
-    buffer_resize(b, buffer_length(b));
+	buffer_resize(b, buffer_length(b));
 }
 
 /**
@@ -96,120 +102,136 @@ static inline void buffer_reclaim(struct buffer *b)
  *	first byte of the extra data is returned.
  *  If this would exceed the total buffer size the buffer will grow automatically.
  */
-void *buffer_put(struct buffer *b, size_t len);
+void	*buffer_put(struct buffer *b, size_t len);
 
-static inline void *buffer_put_zero(struct buffer *b, size_t len)
+static inline void *
+buffer_put_zero(struct buffer *b, size_t len)
 {
-    void *tmp = buffer_put(b, len);
+	void *tmp = buffer_put(b, len);
 
-    if (tmp)
-        memset(tmp, 0, len);
-    return tmp;
+	if (tmp != NULL)
+		memset(tmp, 0, len);
+
+	return (tmp);
 }
 
-static inline void *buffer_put_data(struct buffer *b, const void *data,   size_t len)
+static inline void *
+buffer_put_data(struct buffer *b, const void *data, size_t len)
 {
-    void *tmp = buffer_put(b, len);
+	void *tmp = buffer_put(b, len);
 
-    if (tmp)
-        memcpy(tmp, data, len);
-    return tmp;
+	if (tmp != NULL)
+		memcpy(tmp, data, len);
+
+	return (tmp);
 }
 
-
-static inline int buffer_put_u8(struct buffer *b, uint8_t val)
+static inline int
+buffer_put_u8(struct buffer *b, uint8_t val)
 {
-    uint8_t *p = (uint8_t*) buffer_put(b, 1);
+	uint8_t *p = (uint8_t *)buffer_put(b, 1);
 
-    if (p) {
-        *p = val;
-        return 0;
-    }
+	if (p != NULL) {
+		*p = val;
+		return (0);
+	}
 
-    return -1;
+	return (-1);
 }
 
-static inline int buffer_put_u16(struct buffer *b, uint16_t val)
+static inline int
+buffer_put_u16(struct buffer *b, uint16_t val)
 {
-    uint16_t *p = (uint16_t*) buffer_put(b, 2);
+	uint16_t *p = (uint16_t *)buffer_put(b, 2);
 
-    if (p) {
-        *p = val;
-        return 0;
-    }
+	if (p != NULL) {
+		*p = val;
+		return (0);
+	}
 
-    return -1;
+	return (-1);
 }
 
-static inline int buffer_put_u16be(struct buffer *b, uint16_t val)
+static inline int
+buffer_put_u16be(struct buffer *b, uint16_t val)
 {
-    return buffer_put_u16(b, htobe16(val));
+	return (buffer_put_u16(b, htobe16(val)));
 }
 
-static inline int buffer_put_u16le(struct buffer *b, uint16_t val)
+static inline int
+buffer_put_u16le(struct buffer *b, uint16_t val)
 {
-    return buffer_put_u16(b, htole16(val));
+	return (buffer_put_u16(b, htole16(val)));
 }
 
-static inline int buffer_put_u32(struct buffer *b, uint32_t val)
+static inline int
+buffer_put_u32(struct buffer *b, uint32_t val)
 {
-    uint32_t *p = (uint32_t*) buffer_put(b, 4);
+	uint32_t *p = (uint32_t *)buffer_put(b, 4);
 
-    if (p) {
-        *p = val;
-        return 0;
-    }
+	if (p != NULL) {
+		*p = val;
+		return (0);
+	}
 
-    return -1;
+	return (-1);
 }
 
-static inline int buffer_put_u32be(struct buffer *b, uint32_t val)
+static inline int
+buffer_put_u32be(struct buffer *b, uint32_t val)
 {
-    return buffer_put_u32(b, htobe32(val));
+	return (buffer_put_u32(b, htobe32(val)));
 }
 
-static inline int buffer_put_u32le(struct buffer *b, uint32_t val)
+static inline int
+buffer_put_u32le(struct buffer *b, uint32_t val)
 {
-    return buffer_put_u32(b, htole32(val));
+	return (buffer_put_u32(b, htole32(val)));
 }
 
-static inline int buffer_put_u64(struct buffer *b, uint64_t val)
+static inline int
+buffer_put_u64(struct buffer *b, uint64_t val)
 {
-    uint64_t *p = (uint64_t*) buffer_put(b, 8);
+	uint64_t *p = (uint64_t *)buffer_put(b, 8);
 
-    if (p) {
-        *p = val;
-        return 0;
-    }
+	if (p != NULL) {
+		*p = val;
+		return (0);
+	}
 
-    return -1;
+	return (-1);
 }
 
-static inline int buffer_put_u64be(struct buffer *b, uint64_t val)
+static inline int
+buffer_put_u64be(struct buffer *b, uint64_t val)
 {
-    return buffer_put_u64(b, htobe64(val));
+	return (buffer_put_u64(b, htobe64(val)));
 }
 
-static inline int buffer_put_u64le(struct buffer *b, uint64_t val)
+static inline int
+buffer_put_u64le(struct buffer *b, uint64_t val)
 {
-    return buffer_put_u64(b, htole64(val));
+	return (buffer_put_u64(b, htole64(val)));
 }
 
-static inline int buffer_put_string(struct buffer *b, const char *s)
+static inline int
+buffer_put_string(struct buffer *b, const char *s)
 {
-    size_t len = strlen(s);
-    char *p = (char*) buffer_put(b, len);
+	size_t len = strlen(s);
+	char *p = buffer_put(b, len);
 
-    if (p) {
-        memcpy(p, s, len);
-        return 0;
-    }
+	if (p != NULL) {
+		memcpy(p, s, len);
+		return (0);
+	}
 
-    return -1;
+	return (-1);
 }
 
-int buffer_put_vprintf(struct buffer *b, const char *fmt, va_list ap) __attribute__((format(printf, 2, 0)));
-int buffer_put_printf(struct buffer *b, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+int	buffer_put_vprintf(struct buffer *b, const char *fmt, va_list ap)
+	    __attribute__((format(printf, 2, 0)));
+int	buffer_put_printf(struct buffer *b, const char *fmt, ...)
+	    __attribute__((format(printf, 2, 3)));
 
 /**
  *  buffer_put_fd_ex - Append data from a file to the end of a buffer. The file must be opened in nonblocking.
@@ -221,12 +243,13 @@ int buffer_put_printf(struct buffer *b, const char *fmt, ...) __attribute__((for
  *       P_FD_EOF/P_FD_ERR/P_FD_PENDING or number of bytes read.
  *  @return: Return the number of bytes append
  */
-int buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
-                     int (*rd)(int fd, void *buf, size_t count, void *arg), void *arg);
+int	buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
+	    int (*rd)(int fd, void *buf, size_t count, void *arg), void *arg);
 
-static inline int buffer_put_fd(struct buffer *b, int fd, ssize_t len, bool *eof)
+static inline int
+buffer_put_fd(struct buffer *b, int fd, ssize_t len, bool *eof)
 {
-    return buffer_put_fd_ex(b, fd, len, eof, NULL, NULL);
+	return buffer_put_fd_ex(b, fd, len, eof, NULL, NULL);
 }
 
 /**
@@ -235,7 +258,7 @@ static inline int buffer_put_fd(struct buffer *b, int fd, ssize_t len, bool *eof
  *	Cut the length of a buffer down by removing data from the tail. If
  *	the buffer is already under the length specified it is not modified.
  */
-void buffer_truncate(struct buffer *b, size_t len);
+void	buffer_truncate(struct buffer *b, size_t len);
 
 /**
  *	buffer_pull - remove data from the start of a buffer
@@ -244,154 +267,173 @@ void buffer_truncate(struct buffer *b, size_t len);
  *  returning the actual length removed.
  *  Just remove the data if the dest is NULL.
  */
-size_t buffer_pull(struct buffer *b, void *dest, size_t len);
+size_t	buffer_pull(struct buffer *b, void *dest, size_t len);
 
-static inline uint8_t buffer_pull_u8(struct buffer *b)
+static inline uint8_t
+buffer_pull_u8(struct buffer *b)
 {
-    uint8_t val = 0;
+	uint8_t val = 0;
 
-    if (buffer_length(b) > 0) {
-        val = b->data[0];
-        b->data += 1;
-    }
+	if (buffer_length(b) > 0) {
+		val = b->data[0];
+		b->data += 1;
+	}
 
-    return val;
+	return (val);
 }
 
-static inline uint16_t buffer_pull_u16(struct buffer *b)
+static inline uint16_t
+buffer_pull_u16(struct buffer *b)
 {
-    uint16_t val = 0;
+	uint16_t val = 0;
 
-    if (buffer_length(b) > 1) {
-        val = *((uint16_t *)b->data);
-        b->data += 2;
-    }
+	if (buffer_length(b) > 1) {
+		val = *((uint16_t *)b->data);
+		b->data += 2;
+	}
 
-    return val;
+	return (val);
 }
 
-static inline uint16_t buffer_pull_u16be(struct buffer *b)
+static inline uint16_t
+buffer_pull_u16be(struct buffer *b)
 {
-    return be16toh(buffer_pull_u16(b));
+	return be16toh(buffer_pull_u16(b));
 }
 
-static inline uint16_t buffer_pull_u16le(struct buffer *b)
+static inline uint16_t
+buffer_pull_u16le(struct buffer *b)
 {
-    return le16toh(buffer_pull_u16(b));
+	return (le16toh(buffer_pull_u16(b)));
 }
 
-static inline uint32_t buffer_pull_u32(struct buffer *b)
+static inline uint32_t
+buffer_pull_u32(struct buffer *b)
 {
-    uint32_t val = 0;
+	uint32_t val = 0;
 
-    if (buffer_length(b) > 3) {
-        val = *((uint32_t *)b->data);
-        b->data += 4;
-    }
+	if (buffer_length(b) > 3) {
+		val = *((uint32_t *)b->data);
+		b->data += 4;
+	}
 
-    return val;
+	return (val);
 }
 
-static inline uint32_t buffer_pull_u32be(struct buffer *b)
+static inline uint32_t
+buffer_pull_u32be(struct buffer *b)
 {
-    return be32toh(buffer_pull_u32(b));
+	return (be32toh(buffer_pull_u32(b)));
 }
 
-static inline uint32_t buffer_pull_u32le(struct buffer *b)
+static inline uint32_t
+buffer_pull_u32le(struct buffer *b)
 {
-    return le32toh(buffer_pull_u32(b));
+	return (le32toh(buffer_pull_u32(b)));
 }
 
-static inline uint64_t buffer_pull_u64(struct buffer *b)
+static inline uint64_t
+buffer_pull_u64(struct buffer *b)
 {
-    uint64_t val = 0;
+	uint64_t val = 0;
 
-    if (buffer_length(b) > 7) {
-        val = *((uint64_t *)b->data);
-        b->data += 8;
-    }
+	if (buffer_length(b) > 7) {
+		val = *((uint64_t *)b->data);
+		b->data += 8;
+	}
 
-    return val;
+	return (val);
 }
 
-static inline uint64_t buffer_pull_u64be(struct buffer *b)
+static inline uint64_t
+buffer_pull_u64be(struct buffer *b)
 {
-    return be64toh(buffer_pull_u64(b));
+	return (be64toh(buffer_pull_u64(b)));
 }
 
-static inline uint64_t buffer_pull_u64le(struct buffer *b)
+static inline uint64_t
+buffer_pull_u64le(struct buffer *b)
 {
-    return le64toh(buffer_pull_u64(b));
+	return (le64toh(buffer_pull_u64(b)));
 }
 
-static inline uint8_t buffer_get_u8(struct buffer *b, ssize_t offset)
+static inline uint8_t
+buffer_get_u8(struct buffer *b, ssize_t offset)
 {
-    uint8_t val = 0;
+	uint8_t val = 0;
 
-    if (buffer_length(b) > offset)
-        val = b->data[offset];
+	if (buffer_length(b) > offset)
+		val = b->data[offset];
 
-    return val;
+	return (val);
 }
 
-static inline uint16_t buffer_get_u16(struct buffer *b, ssize_t offset)
+static inline uint16_t
+buffer_get_u16(struct buffer *b, ssize_t offset)
 {
-    uint16_t val = 0;
+	uint16_t val = 0;
 
-    if (buffer_length(b) > offset + 1)
-        val = *((uint16_t *)(b->data + offset));
+	if (buffer_length(b) > offset + 1)
+		val = *((uint16_t *)(b->data + offset));
 
-    return val;
+	return (val);
 }
 
 static inline uint16_t buffer_get_u16be(struct buffer *b, ssize_t offset)
 {
-    return be16toh(buffer_get_u16(b, offset));
+	return (be16toh(buffer_get_u16(b, offset)));
 }
 
-static inline uint16_t buffer_get_u16le(struct buffer *b, ssize_t offset)
+static inline uint16_t
+buffer_get_u16le(struct buffer *b, ssize_t offset)
 {
-    return le16toh(buffer_get_u16(b, offset));
+	return (le16toh(buffer_get_u16(b, offset)));
 }
 
-static inline uint32_t buffer_get_u32(struct buffer *b, ssize_t offset)
+static inline uint32_t
+buffer_get_u32(struct buffer *b, ssize_t offset)
 {
-    uint32_t val = 0;
+	uint32_t val = 0;
 
-    if (buffer_length(b) > offset + 3)
-        val = *((uint32_t *)(b->data + offset));
+	if (buffer_length(b) > offset + 3)
+		val = *((uint32_t *)(b->data + offset));
 
-    return val;
+	return val;
 }
 
-static inline uint32_t buffer_get_u32be(struct buffer *b, ssize_t offset)
+static inline uint32_t
+buffer_get_u32be(struct buffer *b, ssize_t offset)
 {
-    return be32toh(buffer_get_u32(b, offset));
+	return (be32toh(buffer_get_u32(b, offset)));
 }
 
-static inline uint32_t buffer_get_u32le(struct buffer *b, ssize_t offset)
+static inline uint32_t
+buffer_get_u32le(struct buffer *b, ssize_t offset)
 {
-    return le32toh(buffer_get_u32(b, offset));
+	return (le32toh(buffer_get_u32(b, offset)));
 }
 
-static inline uint64_t buffer_get_u64(struct buffer *b, ssize_t offset)
+static inline uint64_t
+buffer_get_u64(struct buffer *b, ssize_t offset)
 {
-    uint64_t val = 0;
+	uint64_t val = 0;
 
-    if (buffer_length(b) > offset + 7)
-        val = *((uint64_t *)(b->data + offset));
+	if (buffer_length(b) > offset + 7)
+		val = *((uint64_t *)(b->data + offset));
 
-    return val;
+	return (val);
 }
 
-static inline uint64_t buffer_get_u64be(struct buffer *b, ssize_t offset)
+static inline uint64_t
+buffer_get_u64be(struct buffer *b, ssize_t offset)
 {
-    return be64toh(buffer_get_u64(b, offset));
+	return (be64toh(buffer_get_u64(b, offset)));
 }
 
-static inline uint64_t buffer_get_u64le(struct buffer *b, ssize_t offset)
+static inline uint64_t
+buffer_get_u64le(struct buffer *b, ssize_t offset)
 {
-    return le64toh(buffer_get_u64(b, offset));
+	return (le64toh(buffer_get_u64(b, offset)));
 }
 
 /**
@@ -403,21 +445,23 @@ static inline uint64_t buffer_get_u64le(struct buffer *b, ssize_t offset)
  *       P_FD_EOF/P_FD_ERR/P_FD_PENDING or number of bytes write.
  *  @return: the number of bytes removed
  */
-int buffer_pull_to_fd_ex(struct buffer *b, int fd, ssize_t len,
-                         int (*wr)(int fd, void *buf, size_t count, void *arg), void *arg);
+int	buffer_pull_to_fd_ex(struct buffer *b, int fd, ssize_t len,
+	    int (*wr)(int fd, void *buf, size_t count, void *arg), void *arg);
 
-static inline int buffer_pull_to_fd(struct buffer *b, int fd, ssize_t len)
+static inline int
+buffer_pull_to_fd(struct buffer *b, int fd, ssize_t len)
 {
-    return buffer_pull_to_fd_ex(b, fd, len, NULL, NULL);
+	return (buffer_pull_to_fd_ex(b, fd, len, NULL, NULL));
 }
 
-void buffer_hexdump(struct buffer *b, size_t offset, size_t len);
+void	buffer_hexdump(struct buffer *b, size_t offset, size_t len);
 
 /**
  *	buffer_find - finds the start of the first occurrence of the sep of length seplen in the buffer
  *  @limit: 0 indicates unlimited
  *	Return -1 if sep is not present in the buffer
  */
-int buffer_find(struct buffer *b, size_t offset, size_t limit, void *sep, size_t seplen);
+int	buffer_find(struct buffer *b, size_t offset, size_t limit,
+	    void *sep, size_t seplen);
 
 #endif
