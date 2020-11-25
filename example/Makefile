@@ -6,7 +6,7 @@ MAN=
 
 SRCS=	example.c
 SRCS+=	umqtt.c
-SRCS+=	buffer.c log.c ssl.c utils.c
+SRCS+=	buffer.c log.c utils.c
 
 CFLAGS+=-I/usr/local/include -I${.CURDIR}/..
 

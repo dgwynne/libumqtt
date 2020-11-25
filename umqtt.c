@@ -34,7 +34,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 
-#include "ssl.h"
 #include "utils.h"
 #include "umqtt.h"
 
@@ -101,10 +100,6 @@ umqtt_free(struct umqtt_client *cl)
 	event_del(&cl->iow);
 	buffer_free(&cl->rb);
 	buffer_free(&cl->wb);
-
-#if UMQTT_SSL_SUPPORT
-	umqtt_ssl_free(cl->ssl);
-#endif
 
 	if (cl->sock > 0)
 	close(cl->sock);
@@ -792,13 +787,7 @@ check_socket_state(struct umqtt_client *cl)
 		return -1;
 	}
 
-#if UMQTT_SSL_SUPPORT
-	if (cl->ssl)
-		cl->state = UMQTT_STATE_SSL_HANDSHAKE;
-	else
-#endif
-		cl->state = UMQTT_STATE_PARSE_FH;
-
+	cl->state = UMQTT_STATE_PARSE_FH;
 
 	if (cl->state == UMQTT_STATE_PARSE_FH && cl->on_net_connected)
 		cl->on_net_connected(cl);
@@ -818,13 +807,7 @@ umqtt_io_read_cb(int sock, short revents, void *arg)
 			return;
 	}
 
-#if UMQTT_SSL_SUPPORT
-	if (cl->ssl)
-		ret = buffer_put_fd_ex(rb, sock, -1, &eof, umqtt_ssl_read, cl->ssl);
-	else
-#endif
-		ret = buffer_put_fd(rb, sock, -1, &eof);
-
+	ret = buffer_put_fd(rb, sock, -1, &eof);
 	if (ret < 0) {
 		umqtt_error(cl, UMQTT_ERROR_IO, strerror(errno));
 		return;
@@ -852,32 +835,7 @@ umqtt_io_write_cb(int sock, short revents, void *arg)
 			return;
 	}
 
-#if UMQTT_SSL_SUPPORT
-	if (cl->state == UMQTT_STATE_SSL_HANDSHAKE) {
-		ret = umqtt_ssl_handshake(cl->ssl);
-		if (ret == -1) {
-			umqtt_error(cl, UMQTT_ERROR_SSL_HANDSHAKE,
-			    "ssl handshake failed");
-			return;
-		}
-
-		if (ret == 1) {
-			cl->state = UMQTT_STATE_PARSE_FH;
-			if (cl->on_net_connected)
-				cl->on_net_connected(cl);
-		}
-		return;
-	}
-#endif
-
-#if UMQTT_SSL_SUPPORT
-	if (cl->ssl)
-		ret = buffer_pull_to_fd_ex(&cl->wb, sock,
-		    buffer_length(&cl->wb), umqtt_ssl_write, cl->ssl);
-	else
-#endif
-		ret = buffer_pull_to_fd(&cl->wb, sock, buffer_length(&cl->wb));
-
+	ret = buffer_pull_to_fd(&cl->wb, sock, buffer_length(&cl->wb));
 	if (ret < 0) {
 		umqtt_error(cl, UMQTT_ERROR_IO, "write error");
 		return;
@@ -889,7 +847,7 @@ umqtt_io_write_cb(int sock, short revents, void *arg)
 
 int
 umqtt_init(struct umqtt_client *cl, struct event_base *base,
-    const char *host, const char *port, bool ssl)
+    const char *host, const char *port)
 {
 	int sock = -1;
 	int eai;
@@ -918,16 +876,6 @@ umqtt_init(struct umqtt_client *cl, struct event_base *base,
 	cl->free = umqtt_free;
 	cl->start_time = clock_now();
 
-	if (ssl) {
-#if (UMQTT_SSL_SUPPORT)
-		umqtt_ssl_init((struct umqtt_ssl_ctx **)&cl->ssl, cl->sock);
-#else
-		umqtt_log_err("SSL is not enabled at compile\n");
-		umqtt_free(cl);
-		return -1;
-#endif
-	}
-
 	event_set(&cl->iow, sock, EV_WRITE, umqtt_io_write_cb, cl);
 	event_base_set(cl->base, &cl->iow);
 	event_add(&cl->iow, NULL); /* XXX */
@@ -945,7 +893,7 @@ umqtt_init(struct umqtt_client *cl, struct event_base *base,
 
 struct umqtt_client *
 umqtt_new(struct event_base *base,
-    const char *host, const char *port, bool ssl)
+    const char *host, const char *port)
 {
 	struct umqtt_client *cl;
 
@@ -955,7 +903,7 @@ umqtt_new(struct event_base *base,
 		return NULL;
 	}
 
-	if (umqtt_init(cl, base, host, port, ssl) < 0) {
+	if (umqtt_init(cl, base, host, port) < 0) {
 		free(cl);
 		return NULL;
 	}

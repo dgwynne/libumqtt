@@ -150,7 +150,6 @@ struct umqtt_client {
     struct buffer rb;
     struct buffer wb;
     int state;
-    void *ssl;              /* Context wrap of openssl, wolfssl and mbedtls */
 
     int64_t start_time;   /* Time stamp of begin connect */
     int64_t last_ping;    /* Time stamp of last ping */
@@ -184,7 +183,7 @@ struct umqtt_client {
     void (*on_pingresp)(struct umqtt_client *cl);
 };
 
-int umqtt_init(struct umqtt_client *cl, struct event_base *loop, const char *host, const char *port, bool ssl);
-struct umqtt_client *umqtt_new(struct event_base *loop, const char *host, const char *port, bool ssl);
+int umqtt_init(struct umqtt_client *cl, struct event_base *loop, const char *host, const char *port);
+struct umqtt_client *umqtt_new(struct event_base *loop, const char *host, const char *port);
 
 #endif

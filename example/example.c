@@ -30,7 +30,6 @@
 struct config {
 	const char	*host;
 	const char	*port;
-	bool		 ssl;
 	bool		 auto_reconnect;
 	struct umqtt_connect_opts
 			 options;
@@ -162,7 +161,7 @@ do_connect(int nope, short revents, void *arg)
 	struct event_base *base = arg;
 	struct umqtt_client *cl;
 
-	cl = umqtt_new(base, cfg.host, cfg.port, cfg.ssl);
+	cl = umqtt_new(base, cfg.host, cfg.port);
 	if (!cl) {
 		start_reconnect(base);
 		return;
@@ -193,7 +192,6 @@ usage(const char *prog)
 	    "      -h host      # Default is 'localhost'\n"
 	    "      -p port      # Default is 1883\n"
 	    "      -i ClientId  # Default is 'libumqtt-Test\n"
-	    "      -s           # Use ssl\n"
 	    "      -a           # Auto reconnect to the server\n"
 	    "      -d           # enable debug messages\n"
 	    , prog);
@@ -208,16 +206,13 @@ main(int argc, char **argv)
 	static const struct timeval connect_timer = { 0, 100000 };
 	int opt;
 
-	while ((opt = getopt(argc, argv, "h:i:p:sad")) != -1) {
+	while ((opt = getopt(argc, argv, "h:i:p:ad")) != -1) {
 		switch (opt) {
 		case 'h':
 			cfg.host = optarg;
 			break;
 		case 'p':
 			cfg.port = optarg;
-			break;
-		case 's':
-			cfg.ssl = true;
 			break;
 		case 'a':
 			cfg.auto_reconnect = true;

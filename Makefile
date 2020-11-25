@@ -5,7 +5,7 @@ CFLAGS+=-I/usr/local/include
 
 HDRS=	umqtt.h
 SRCS=	umqtt.c
-SRCS+=	buffer.c log.c ssl.c utils.c
+SRCS+=	buffer.c log.c utils.c
 
 includes:
 	@cd ${.CURDIR}; for i in $(HDRS); do \
