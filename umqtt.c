@@ -543,7 +543,7 @@ static void umqtt_timer_cb(int nil, short events, void *arg)
     evtimer_add(&cl->timer, &tick);
 
     if (cl->state < UMQTT_STATE_PARSE_FH) {
-        if (now - cl->start_time > UMQTT_MAX_CONNECT_TIME) {
+        if (now - cl->start_time > UMQTT_MAX_CONNECT_TIME * 1000000000ULL) {
             umqtt_error(cl, UMQTT_ERROR_CONNECT, "Connect timeout");
             return;
         }
@@ -553,7 +553,7 @@ static void umqtt_timer_cb(int nil, short events, void *arg)
         return;
 
     if (cl->wait_pingresp) {
-        if (now - cl->last_ping < 3)
+        if (now - cl->last_ping < 3 * 1000000000ULL)
             return;
 
         cl->wait_pingresp = false;
@@ -566,7 +566,7 @@ static void umqtt_timer_cb(int nil, short events, void *arg)
         cl->ntimeout = 0;
     }
 
-    if (now - cl->last_ping < cl->keep_alive)
+    if (now - cl->last_ping < cl->keep_alive * 1000000000ULL)
         return;
 
     cl->ping(cl);
