@@ -241,8 +241,6 @@ main(int argc, char **argv)
 	event_base_set(base, &reconnect_timer);
 	evtimer_add(&reconnect_timer, &connect_timer);
 
-	umqtt_log_info("libumqttc version %s\n", UMQTT_VERSION_STRING);
-
 	event_base_dispatch(base);
     
 	return (0);

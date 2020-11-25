@@ -31,7 +31,6 @@
 
 #include "log.h"
 #include "utils.h"
-#include "config.h"
 #include "buffer.h"
 
 #define UMQTT_PKT_HDR_LEN   1
