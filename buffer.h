@@ -50,7 +50,6 @@ struct buffer {
     uint8_t *data;  /* Data head pointer */
     uint8_t *tail;  /* Data tail pointer */
     uint8_t *end;   /* End of buffer */
-    size_t limit;   /* The limit of total size */
 };
 
 int buffer_init(struct buffer *b, size_t size);
@@ -93,13 +92,6 @@ static inline void *buffer_data(const struct buffer *b)
 static inline void buffer_reclaim(struct buffer *b)
 {
     buffer_resize(b, buffer_length(b));
-}
-
-static inline size_t buffer_free_size(struct buffer *b)
-{
-    if (b->limit == 0)
-        return UINT_MAX;
-    return b->limit - buffer_length(b);
 }
 
 /**

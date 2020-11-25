@@ -42,9 +42,6 @@ int buffer_resize(struct buffer *b, size_t size)
     while (new_size < size)
         new_size <<= 1u;
 
-    if (b->limit > 0 && new_size > b->limit)
-        return 1;
-
     if (b->head) {
         if (buffer_headroom(b) > 0) {
             memmove(b->head, b->data, data_len);
@@ -86,16 +83,6 @@ void buffer_free(struct buffer *b)
         free(b->head);
         memset(b, 0, sizeof(struct buffer));
     }
-}
-
-void buffer_set_limit(struct buffer *b, size_t size)
-{
-    size_t new_size = getpagesize();
-
-    while (new_size < size)
-        new_size <<= 1u;
-
-    b->limit = new_size;
 }
 
 /**
