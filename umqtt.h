@@ -25,7 +25,7 @@
 #ifndef _UMQTT_H
 #define _UMQTT_H
 
-#include <ev.h>
+#include <event.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -146,19 +146,19 @@ struct umqtt_topic {
 
 struct umqtt_client {
     int sock;
-    struct ev_loop *loop;
-    struct ev_io ior;
-    struct ev_io iow;
+    struct event_base *base;
+    struct event ior;
+    struct event iow;
     struct buffer rb;
     struct buffer wb;
     int state;
     void *ssl;              /* Context wrap of openssl, wolfssl and mbedtls */
 
-    ev_tstamp start_time;   /* Time stamp of begin connect */
-    ev_tstamp last_ping;    /* Time stamp of last ping */
+    int64_t start_time;   /* Time stamp of begin connect */
+    int64_t last_ping;    /* Time stamp of last ping */
     int ntimeout;           /* Number of timeouts */
 
-    struct ev_timer timer;
+    struct event timer;
 
     bool connection_accepted;       /* Received the conack packet and returns UMQTT_CONNECTION_ACCEPTED */
     struct umqtt_packet pkt;
@@ -186,7 +186,7 @@ struct umqtt_client {
     void (*on_pingresp)(struct umqtt_client *cl);
 };
 
-int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, const char *port, bool ssl);
-struct umqtt_client *umqtt_new(struct ev_loop *loop, const char *host, const char *port, bool ssl);
+int umqtt_init(struct umqtt_client *cl, struct event_base *loop, const char *host, const char *port, bool ssl);
+struct umqtt_client *umqtt_new(struct event_base *loop, const char *host, const char *port, bool ssl);
 
 #endif

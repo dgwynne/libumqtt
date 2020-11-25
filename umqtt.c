@@ -23,6 +23,7 @@
  */
 
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include <time.h>
 #include <stdlib.h>
@@ -36,6 +37,25 @@
 #include "ssl.h"
 #include "utils.h"
 #include "umqtt.h"
+
+static inline uint64_t
+TIMESPEC_TO_NSEC(const struct timespec *ts)
+{
+	if (ts->tv_sec > (UINT64_MAX - ts->tv_nsec) / 1000000000ULL)
+		return UINT64_MAX;
+	return ts->tv_sec * 1000000000ULL + ts->tv_nsec;
+}
+
+static int64_t
+clock_now(void)
+{
+	struct timespec now;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &now) == -1)
+		abort(); /* XXX */
+
+	return (TIMESPEC_TO_NSEC(&now));
+}
 
 static const char *umqtt_packet_type_to_string(int type)
 {
@@ -63,8 +83,8 @@ static const char *umqtt_packet_type_to_string(int type)
 
 static void umqtt_free(struct umqtt_client *cl)
 {
-    ev_io_stop(cl->loop, &cl->ior);
-    ev_io_stop(cl->loop, &cl->iow);
+    event_del(&cl->ior);
+    event_del(&cl->iow);
     buffer_free(&cl->rb);
     buffer_free(&cl->wb);
 
@@ -75,7 +95,7 @@ static void umqtt_free(struct umqtt_client *cl)
     if (cl->sock > 0)
         close(cl->sock);
 
-    ev_timer_stop(cl->loop, &cl->timer);
+    evtimer_del(&cl->timer);
 }
 
 static inline void umqtt_error(struct umqtt_client *cl, int err, const char *msg)
@@ -132,7 +152,7 @@ static void send_pub(struct umqtt_client *cl, uint8_t type, uint8_t flags, uint1
     buffer_put_u8(wb, 0x02);
     buffer_put_u16(wb, htons(mid));
 
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
 
     umqtt_log_debug("send %s: mid(%d)\n", umqtt_packet_type_to_string(type), mid);
 }
@@ -327,7 +347,7 @@ static int umqtt_connect(struct umqtt_client *cl, struct umqtt_connect_opts *opt
     if (opts->client_id)
         strncpy(client_id, opts->client_id, sizeof(client_id) - 1);
     else
-        sprintf(client_id, "umqtt-%f", ev_now(cl->loop));
+        sprintf(client_id, "umqtt-%" PRId64, clock_now());
 
     cl->keep_alive = opts->keep_alive > 0 ? opts->keep_alive : UMQTT_KEEP_ALIVE_DEFAULT;
 
@@ -382,7 +402,7 @@ static int umqtt_connect(struct umqtt_client *cl, struct umqtt_connect_opts *opt
             umqtt_put_string(wb, opts->password);
     }
 
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
     return 0;
 }
 
@@ -412,7 +432,7 @@ int umqtt_subscribe(struct umqtt_client *cl, struct umqtt_topic *topics, int num
         buffer_put_u8(wb, topics[i].qos);
     }
 
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
 
     return 0;
 }
@@ -441,7 +461,7 @@ int umqtt_unsubscribe(struct umqtt_client *cl, const char **topics, int num)
     for (i = 0; i < num; i++)
         umqtt_put_string(wb, topics[i]);
 
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
 
     return 0;
 }
@@ -474,7 +494,7 @@ static int __umqtt_publish(struct umqtt_client *cl, uint16_t mid,
 
     buffer_put_data(wb, payload, payloadlen);
 
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
 
     umqtt_log_debug("send PUBLISH(%sq%d, m%d, '%s', (%d bytes)\n", dup ? "dup, " : "",
         qos, mid, topic, payloadlen);
@@ -501,7 +521,7 @@ static void umqtt_disconnect(struct umqtt_client *cl)
     uint8_t buf[] = {0xE0, 0x00};
 
     buffer_put_data(&cl->wb, buf, 2);
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
 }
 
 static void umqtt_ping(struct umqtt_client *cl)
@@ -509,15 +529,18 @@ static void umqtt_ping(struct umqtt_client *cl)
     uint8_t buf[] = {0xC0, 0x00};
 
     buffer_put_data(&cl->wb, buf, 2);
-    ev_io_start(cl->loop, &cl->iow);
+    event_add(&cl->iow, NULL);
 
     umqtt_log_debug("Send: PINGREQ\n");
 }
 
-static void umqtt_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+static void umqtt_timer_cb(int nil, short events, void *arg)
 {
-    struct umqtt_client *cl = container_of(w, struct umqtt_client, timer);
-    ev_tstamp now = ev_now(loop);
+    struct umqtt_client *cl = arg;
+    int64_t now = clock_now();
+    static const struct timeval tick = { 0, 200000 };
+
+    evtimer_add(&cl->timer, &tick);
 
     if (cl->state < UMQTT_STATE_PARSE_FH) {
         if (now - cl->start_time > UMQTT_MAX_CONNECT_TIME) {
@@ -720,9 +743,9 @@ static int check_socket_state(struct umqtt_client *cl)
     return 0;
 }
 
-static void umqtt_io_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+static void umqtt_io_read_cb(int sock, short revents, void *arg)
 {
-    struct umqtt_client *cl = container_of(w, struct umqtt_client, ior);
+    struct umqtt_client *cl = arg;
     struct buffer *rb = &cl->rb;
     bool eof;
     int ret;
@@ -734,10 +757,10 @@ static void umqtt_io_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 
 #if UMQTT_SSL_SUPPORT
     if (cl->ssl)
-        ret = buffer_put_fd_ex(rb, w->fd, -1, &eof, umqtt_ssl_read, cl->ssl);
+        ret = buffer_put_fd_ex(rb, sock, -1, &eof, umqtt_ssl_read, cl->ssl);
     else
 #endif
-        ret = buffer_put_fd(rb, w->fd, -1, &eof);
+        ret = buffer_put_fd(rb, sock, -1, &eof);
 
     if (ret < 0) {
         umqtt_error(cl, UMQTT_ERROR_IO, strerror(errno));
@@ -754,9 +777,9 @@ static void umqtt_io_read_cb(struct ev_loop *loop, struct ev_io *w, int revents)
     umqtt_parse(cl);
 }
 
-static void umqtt_io_write_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+static void umqtt_io_write_cb(int sock, short revents, void *arg)
 {
-    struct umqtt_client *cl = container_of(w, struct umqtt_client, iow);
+    struct umqtt_client *cl = arg;
     int ret;
 
     if (cl->state == UMQTT_STATE_CONNECTING) {
@@ -783,10 +806,10 @@ static void umqtt_io_write_cb(struct ev_loop *loop, struct ev_io *w, int revents
 
 #if UMQTT_SSL_SUPPORT
     if (cl->ssl)
-        ret = buffer_pull_to_fd_ex(&cl->wb, w->fd, buffer_length(&cl->wb), umqtt_ssl_write, cl->ssl);
+        ret = buffer_pull_to_fd_ex(&cl->wb, sock, buffer_length(&cl->wb), umqtt_ssl_write, cl->ssl);
     else
 #endif
-        ret = buffer_pull_to_fd(&cl->wb, w->fd, buffer_length(&cl->wb));
+        ret = buffer_pull_to_fd(&cl->wb, sock, buffer_length(&cl->wb));
 
     if (ret < 0) {
         umqtt_error(cl, UMQTT_ERROR_IO, "write error");
@@ -794,13 +817,14 @@ static void umqtt_io_write_cb(struct ev_loop *loop, struct ev_io *w, int revents
     }
 
     if (buffer_length(&cl->wb) < 1)
-        ev_io_stop(loop, w);
+        event_del(&cl->iow);
 }
 
-int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, const char *port, bool ssl)
+int umqtt_init(struct umqtt_client *cl, struct event_base *base, const char *host, const char *port, bool ssl)
 {
     int sock = -1;
     int eai;
+    static const struct timeval onesec = { 1, 0 };
 
     memset(cl, 0, sizeof(struct umqtt_client));
 
@@ -813,7 +837,7 @@ int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, 
         return -1;
     }
 
-    cl->loop = loop ? loop : EV_DEFAULT;
+    cl->base = base;
 
     cl->sock = sock;
     cl->connect = umqtt_connect;
@@ -823,7 +847,7 @@ int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, 
     cl->ping = umqtt_ping;
     cl->disconnect = umqtt_disconnect;
 	cl->free = umqtt_free;
-    cl->start_time = ev_now(cl->loop);
+    cl->start_time = clock_now();
 
     if (ssl) {
 #if (UMQTT_SSL_SUPPORT)
@@ -835,19 +859,22 @@ int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, 
 #endif
     }
 
-    ev_io_init(&cl->iow, umqtt_io_write_cb, sock, EV_WRITE);
-    ev_io_start(cl->loop, &cl->iow);
+    event_set(&cl->iow, sock, EV_WRITE, umqtt_io_write_cb, cl);
+    event_base_set(cl->base, &cl->iow);
+    event_add(&cl->iow, NULL); /* XXX */
 
-    ev_io_init(&cl->ior, umqtt_io_read_cb, sock, EV_READ);
-    ev_io_start(cl->loop, &cl->ior);
+    event_set(&cl->ior, sock, EV_READ | EV_PERSIST, umqtt_io_read_cb, cl);
+    event_base_set(cl->base, &cl->ior);
+    event_add(&cl->ior, NULL);
 
-    ev_timer_init(&cl->timer, umqtt_timer_cb, 1.0, 0.2);
-    ev_timer_start(cl->loop, &cl->timer);
+    evtimer_set(&cl->timer, umqtt_timer_cb, cl);
+    event_base_set(cl->base, &cl->timer);
+    evtimer_add(&cl->timer, &onesec);
 
     return 0;
 }
 
-struct umqtt_client *umqtt_new(struct ev_loop *loop, const char *host, const char *port, bool ssl)
+struct umqtt_client *umqtt_new(struct event_base *base, const char *host, const char *port, bool ssl)
 {
     struct umqtt_client *cl;
 
@@ -857,7 +884,7 @@ struct umqtt_client *umqtt_new(struct ev_loop *loop, const char *host, const cha
         return NULL;
     }
 
-    if (umqtt_init(cl, loop, host, port, ssl) < 0) {
+    if (umqtt_init(cl, base, host, port, ssl) < 0) {
         free(cl);
         return NULL;
     }
