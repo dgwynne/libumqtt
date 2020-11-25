@@ -43,6 +43,6 @@
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
 
-int tcp_connect(const char *host, int port, int flags, bool *inprogress, int *eai);
+int tcp_connect(const char *host, const char *port, int flags, bool *inprogress, int *eai);
 
 #endif

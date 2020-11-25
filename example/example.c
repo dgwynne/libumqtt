@@ -28,7 +28,7 @@
 
 struct config {
     const char *host;
-    int port;
+    const char *port;
     bool ssl;
     bool auto_reconnect;
     struct umqtt_connect_opts options;
@@ -38,7 +38,7 @@ static struct ev_timer reconnect_timer;
 
 static struct config cfg = {
     .host = "localhost",
-    .port = 1883,
+    .port = "1883",
     .options = {
         .keep_alive = 30,
         .clean_session = true,
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
             cfg.host = optarg;
             break;
         case 'p':
-            cfg.port = atoi(optarg);
+            cfg.port = optarg;
             break;
         case 's':
             cfg.ssl = true;

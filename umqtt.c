@@ -797,7 +797,7 @@ static void umqtt_io_write_cb(struct ev_loop *loop, struct ev_io *w, int revents
         ev_io_stop(loop, w);
 }
 
-int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, int port, bool ssl)
+int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, const char *port, bool ssl)
 {
     int sock = -1;
     int eai;
@@ -847,7 +847,7 @@ int umqtt_init(struct umqtt_client *cl, struct ev_loop *loop, const char *host, 
     return 0;
 }
 
-struct umqtt_client *umqtt_new(struct ev_loop *loop, const char *host, int port, bool ssl)
+struct umqtt_client *umqtt_new(struct ev_loop *loop, const char *host, const char *port, bool ssl)
 {
     struct umqtt_client *cl;
 

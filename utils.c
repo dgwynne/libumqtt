@@ -35,19 +35,7 @@
 #include "log.h"
 #include "utils.h"
 
-static const char *port2str(int port)
-{
-    static char buffer[sizeof("65535\0")];
-
-    if (port < 0 || port > 65535)
-        return NULL;
-
-    snprintf(buffer, sizeof(buffer), "%u", port);
-
-    return buffer;
-}
-
-int tcp_connect(const char *host, int port, int flags, bool *inprogress, int *eai)
+int tcp_connect(const char *host, const char *port, int flags, bool *inprogress, int *eai)
 {
     int ret;
     int sock = -1;
@@ -63,7 +51,7 @@ int tcp_connect(const char *host, int port, int flags, bool *inprogress, int *ea
     if (inprogress)
         *inprogress = false;
 
-    ret = getaddrinfo(host, port2str(port), &hints, &result);
+    ret = getaddrinfo(host, port, &hints, &result);
     if (ret) {
         if (ret == EAI_SYSTEM)
             return -1;
