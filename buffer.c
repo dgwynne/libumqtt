@@ -45,7 +45,7 @@ int buffer_resize(struct buffer *b, size_t size)
     if (b->limit > 0 && new_size > b->limit)
         return 1;
 
-    if (likely(b->head)) {
+    if (b->head) {
         if (buffer_headroom(b) > 0) {
             memmove(b->head, b->data, data_len);
             b->data = b->head;
@@ -57,14 +57,14 @@ int buffer_resize(struct buffer *b, size_t size)
         head = malloc(new_size);
     }
 
-    if (unlikely(!head))
+    if (!head)
         return -1;
 
     b->head = b->data = head;
     b->tail = b->data + data_len;
     b->end = b->head + new_size;
 
-    if (unlikely(b->tail > b->end))
+    if (b->tail > b->end)
         b->tail = b->end;
 
     return 0;
@@ -137,12 +137,12 @@ int buffer_put_vprintf(struct buffer *b, const char *fmt, va_list ap)
         if (ret < 0)
             return -1;
 
-        if (likely(ret < tail_room)) {
+        if (ret < tail_room) {
             b->tail += ret;
             return 0;
         }
 
-        if (unlikely(buffer_grow(b, 1)))
+        if (buffer_grow(b, 1))
             return -1;
     }
 }
@@ -175,7 +175,7 @@ int buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
         size_t want;
         ssize_t ret;
 
-        if (unlikely(!tail_room)) {
+        if (!tail_room) {
             ret = buffer_grow(b, 1);
             if (ret < 0)
                 return -1;
@@ -196,7 +196,7 @@ int buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
                 break;
         } else {
             ret = read(fd, b->tail, want);
-            if (unlikely(ret < 0)) {
+            if (ret < 0) {
                 if (errno == EINTR)
                     continue;
 

@@ -39,14 +39,6 @@
 #define __builtin_expect(x) (x)
 #endif
 
-#ifndef likely
-#define likely(x)	__builtin_expect(!!(x), 1)
-#endif
-
-#ifndef unlikely
-#define unlikely(x)	__builtin_expect(!!(x), 0)
-#endif
-
 enum {
     P_FD_EOF = 0,
     P_FD_ERR = -1,
@@ -123,7 +115,7 @@ static inline void *buffer_put_zero(struct buffer *b, size_t len)
 {
     void *tmp = buffer_put(b, len);
 
-    if (likely(tmp))
+    if (tmp)
         memset(tmp, 0, len);
     return tmp;
 }
@@ -132,7 +124,7 @@ static inline void *buffer_put_data(struct buffer *b, const void *data,   size_t
 {
     void *tmp = buffer_put(b, len);
 
-    if (likely(tmp))
+    if (tmp)
         memcpy(tmp, data, len);
     return tmp;
 }
@@ -142,7 +134,7 @@ static inline int buffer_put_u8(struct buffer *b, uint8_t val)
 {
     uint8_t *p = (uint8_t*) buffer_put(b, 1);
 
-    if (likely(p)) {
+    if (p) {
         *p = val;
         return 0;
     }
@@ -154,7 +146,7 @@ static inline int buffer_put_u16(struct buffer *b, uint16_t val)
 {
     uint16_t *p = (uint16_t*) buffer_put(b, 2);
 
-    if (likely(p)) {
+    if (p) {
         *p = val;
         return 0;
     }
@@ -176,7 +168,7 @@ static inline int buffer_put_u32(struct buffer *b, uint32_t val)
 {
     uint32_t *p = (uint32_t*) buffer_put(b, 4);
 
-    if (likely(p)) {
+    if (p) {
         *p = val;
         return 0;
     }
@@ -198,7 +190,7 @@ static inline int buffer_put_u64(struct buffer *b, uint64_t val)
 {
     uint64_t *p = (uint64_t*) buffer_put(b, 8);
 
-    if (likely(p)) {
+    if (p) {
         *p = val;
         return 0;
     }
@@ -221,7 +213,7 @@ static inline int buffer_put_string(struct buffer *b, const char *s)
     size_t len = strlen(s);
     char *p = (char*) buffer_put(b, len);
 
-    if (likely(p)) {
+    if (p) {
         memcpy(p, s, len);
         return 0;
     }
@@ -271,7 +263,7 @@ static inline uint8_t buffer_pull_u8(struct buffer *b)
 {
     uint8_t val = 0;
 
-    if (likely(buffer_length(b) > 0)) {
+    if (buffer_length(b) > 0) {
         val = b->data[0];
         b->data += 1;
     }
@@ -283,7 +275,7 @@ static inline uint16_t buffer_pull_u16(struct buffer *b)
 {
     uint16_t val = 0;
 
-    if (likely(buffer_length(b) > 1)) {
+    if (buffer_length(b) > 1) {
         val = *((uint16_t *)b->data);
         b->data += 2;
     }
@@ -305,7 +297,7 @@ static inline uint32_t buffer_pull_u32(struct buffer *b)
 {
     uint32_t val = 0;
 
-    if (likely(buffer_length(b) > 3)) {
+    if (buffer_length(b) > 3) {
         val = *((uint32_t *)b->data);
         b->data += 4;
     }
@@ -327,7 +319,7 @@ static inline uint64_t buffer_pull_u64(struct buffer *b)
 {
     uint64_t val = 0;
 
-    if (likely(buffer_length(b) > 7)) {
+    if (buffer_length(b) > 7) {
         val = *((uint64_t *)b->data);
         b->data += 8;
     }
@@ -349,7 +341,7 @@ static inline uint8_t buffer_get_u8(struct buffer *b, ssize_t offset)
 {
     uint8_t val = 0;
 
-    if (likely(buffer_length(b) > offset))
+    if (buffer_length(b) > offset)
         val = b->data[offset];
 
     return val;
@@ -359,7 +351,7 @@ static inline uint16_t buffer_get_u16(struct buffer *b, ssize_t offset)
 {
     uint16_t val = 0;
 
-    if (likely(buffer_length(b) > offset + 1))
+    if (buffer_length(b) > offset + 1)
         val = *((uint16_t *)(b->data + offset));
 
     return val;
@@ -379,7 +371,7 @@ static inline uint32_t buffer_get_u32(struct buffer *b, ssize_t offset)
 {
     uint32_t val = 0;
 
-    if (likely(buffer_length(b) > offset + 3))
+    if (buffer_length(b) > offset + 3)
         val = *((uint32_t *)(b->data + offset));
 
     return val;
@@ -399,7 +391,7 @@ static inline uint64_t buffer_get_u64(struct buffer *b, ssize_t offset)
 {
     uint64_t val = 0;
 
-    if (likely(buffer_length(b) > offset + 7))
+    if (buffer_length(b) > offset + 7)
         val = *((uint64_t *)(b->data + offset));
 
     return val;
