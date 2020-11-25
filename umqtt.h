@@ -45,22 +45,20 @@
 #define UMQTT_MAX_REMLEN_BYTES      4
 
 /* MQTT Control Packet type */
-enum {
-    UMQTT_CONNECT = 1,  /* Client request to connect to Server */
-    UMQTT_CONNACK,      /* Connect acknowledgment */
-    UMQTT_PUBLISH,      /* Publish message */
-    UMQTT_PUBACK,       /* Publish acknowledgment */
-    UMQTT_PUBREC,       /* Publish received (assured delivery part 1) */
-    UMQTT_PUBREL,       /* Publish release (assured delivery part 2) */
-    UMQTT_PUBCOMP,      /* Publish complete (assured delivery part 3) */
-    UMQTT_SUBSCRIBE,    /* Client subscribe request */
-    UMQTT_SUBACK,       /* Subscribe acknowledgment */
-    UMQTT_UNSUBSCRIBE,  /* Unsubscribe request */
-    UMQTT_UNSUBACK,     /* Unsubscribe acknowledgment */
-    UMQTT_PINGREQ,      /* PING request */
-    UMQTT_PINGRESP,     /* PING response */
-    UMQTT_DISCONNECT    /* Client is disconnecting */
-};
+#define UMQTT_CONNECT		1 /* Client request to connect to Server */
+#define UMQTT_CONNACK		2 /* Connect acknowledgment */
+#define UMQTT_PUBLISH		3 /* Publish message */
+#define UMQTT_PUBACK		4 /* Publish acknowledgment */
+#define UMQTT_PUBREC		5 /* Publish received (assured delivery pt1) */
+#define UMQTT_PUBREL		6 /* Publish release (assured delivery pt2) */
+#define UMQTT_PUBCOMP		7 /* Publish complete (assured delivery pt3) */
+#define UMQTT_SUBSCRIBE		8 /* Client subscribe request */
+#define UMQTT_SUBACK		9 /* Subscribe acknowledgment */
+#define UMQTT_UNSUBSCRIBE	10 /* Unsubscribe request */
+#define UMQTT_UNSUBACK		11 /* Unsubscribe acknowledgment */
+#define UMQTT_PINGREQ		12 /* PING request */
+#define UMQTT_PINGRESP		13 /* PING response */
+#define UMQTT_DISCONNECT	14 /* Client is disconnecting */
 
 /* Connect Return code */
 enum {

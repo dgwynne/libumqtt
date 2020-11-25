@@ -57,28 +57,41 @@ clock_now(void)
 	return (TIMESPEC_TO_NSEC(&now));
 }
 
-static const char *umqtt_packet_type_to_string(int type)
+static const char *
+umqtt_packet_type_to_string(int type)
 {
-#define T2S(t) case t: return (#t) + 6;
-    switch (type) {
-    T2S(UMQTT_CONNECT)
-    T2S(UMQTT_CONNACK)
-    T2S(UMQTT_PUBLISH)
-    T2S(UMQTT_PUBACK)
-    T2S(UMQTT_PUBREC)
-    T2S(UMQTT_PUBREL)
-    T2S(UMQTT_PUBCOMP)
-    T2S(UMQTT_SUBSCRIBE)
-    T2S(UMQTT_SUBACK)
-    T2S(UMQTT_UNSUBSCRIBE)
-    T2S(UMQTT_UNSUBACK)
-    T2S(UMQTT_PINGREQ)
-    T2S(UMQTT_PINGRESP)
-    T2S(UMQTT_DISCONNECT)
-    default:
-        return "Unknown packet type";
-    }
-#undef T2S
+	switch (type) {
+	case UMQTT_CONNECT:
+		return ("CONNECT");
+	case UMQTT_CONNACK:
+		return ("CONNACK");
+	case UMQTT_PUBLISH:
+		return ("PUBLISH");
+	case UMQTT_PUBACK:
+		return ("PUBACK");
+	case UMQTT_PUBREC:
+		return ("PUBREC");
+	case UMQTT_PUBREL:
+		return ("PUBREL");
+	case UMQTT_PUBCOMP:
+		return ("PUBCOMP");
+	case UMQTT_SUBSCRIBE:
+		return ("SUBSCRIBE");
+	case UMQTT_SUBACK:
+		return ("SUBACK");
+	case UMQTT_UNSUBSCRIBE:
+		return ("UNSUBSCRIBE");
+	case UMQTT_UNSUBACK:
+		return ("UNSUBACK");
+	case UMQTT_PINGREQ:
+		return ("PINGREQ");
+	case UMQTT_PINGRESP:
+		return ("PINGRESP");
+	case UMQTT_DISCONNECT:
+		return ("DISCONNECT");
+	default:
+		return ("(Unknown packet type)");
+	}
 }
 
 static void umqtt_free(struct umqtt_client *cl)
