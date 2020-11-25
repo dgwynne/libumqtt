@@ -34,11 +34,6 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-/* Test for GCC < 2.96 */
-#if __GNUC__ < 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ < 96))
-#define __builtin_expect(x) (x)
-#endif
-
 enum {
     P_FD_EOF = 0,
     P_FD_ERR = -1,
