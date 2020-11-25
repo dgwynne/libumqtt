@@ -28,219 +28,227 @@
 #define RECONNECT_INTERVAL  5
 
 struct config {
-    const char *host;
-    const char *port;
-    bool ssl;
-    bool auto_reconnect;
-    struct umqtt_connect_opts options;
+	const char	*host;
+	const char	*port;
+	bool		 ssl;
+	bool		 auto_reconnect;
+	struct umqtt_connect_opts
+			 options;
 };
 
 static struct event reconnect_timer;
 
 static struct config cfg = {
-    .host = "localhost",
-    .port = "1883",
-    .options = {
-        .keep_alive = 30,
-        .clean_session = true,
-        .username = "test",
-        .password = "123456",
-        .will_topic = "will",
-        .will_message = "will test"
-    }
+	.host		= "localhost",
+	.port		= "1883",
+	.options	= {
+		.keep_alive	= 30,
+#if 0
+		.clean_session	= true,
+		.username	= "test",
+		.password	= "123456",
+#endif
+		.will_topic	= "tele/aputest/LWT",
+		.will_message	= "Offline",
+	}
 };
 
-static void start_reconnect(struct event_base *base)
+static void
+start_reconnect(struct event_base *base)
 {
-    static const struct timeval reconnect_interval = { RECONNECT_INTERVAL, 0 };
+	static const struct timeval reconnect_interval =
+	    { RECONNECT_INTERVAL, 0 };
 
-    if (!cfg.auto_reconnect) {
-        event_base_loopbreak(base);
-        return;
-    }
+	if (!cfg.auto_reconnect) {
+		event_base_loopbreak(base);
+		return;
+	}
 
-    evtimer_add(&reconnect_timer, &reconnect_interval);
+	evtimer_add(&reconnect_timer, &reconnect_interval);
 }
 
-static void on_conack(struct umqtt_client *cl, bool sp, int code)
+static void
+on_conack(struct umqtt_client *cl, bool sp, int code)
 {
-    struct umqtt_topic topics[] = {
-        {
-            .topic = "test1",
-            .qos = UMQTT_QOS0
-        },
-        {
-            .topic = "test2",
-            .qos = UMQTT_QOS1
-        },
-        {
-            .topic = "test3",
-            .qos = UMQTT_QOS2
-        }
-    };
+	struct umqtt_topic topics[] = {
+		{
+			.topic	= "tele/+/SENSOR",
+			.qos	= UMQTT_QOS0
+		},
+	};
 
-    if (code != UMQTT_CONNECTION_ACCEPTED) {
-        umqtt_log_err("Connect failed:%d\n", code);
-        return;
-    }
+	if (code != UMQTT_CONNECTION_ACCEPTED) {
+		umqtt_log_err("Connect failed:%d\n", code);
+		return;
+	}
 
-    umqtt_log_info("on_conack:  Session Present(%d)  code(%u)\n", sp, code);
+	umqtt_log_info("on_conack: Session Present(%d) code(%u)\n", sp, code);
 
-    /* Session Present */
-    if (!sp)
-        cl->subscribe(cl, topics, ARRAY_SIZE(topics));
+	/* Session Present */
+	if (!sp)
+		cl->subscribe(cl, topics, ARRAY_SIZE(topics));
 
-    cl->publish(cl, "test4", "hello world", strlen("hello world"), 2, false);
+	cl->publish(cl, cfg.options.will_topic, "Online", strlen("Online"),
+	    2, false);
 }
 
-static void on_suback(struct umqtt_client *cl, uint8_t *granted_qos, int qos_count)
+static void
+on_suback(struct umqtt_client *cl, uint8_t *granted_qos, int qos_count)
 {
-    int i;
+	int i;
 
-    printf("on_suback, qos(");
-    for (i = 0; i < qos_count; i++)
-        printf("%d ", granted_qos[i]);
-    printf("\b)\n");
+	printf("on_suback, qos(");
+	for (i = 0; i < qos_count; i++)
+		printf("%d ", granted_qos[i]);
+	printf("\b)\n");
 }
 
-static void on_unsuback(struct umqtt_client *cl)
+static void
+on_unsuback(struct umqtt_client *cl)
 {
-    umqtt_log_info("on_unsuback\n");
-    umqtt_log_info("Normal quit\n");
+	umqtt_log_info("on_unsuback\n");
+	umqtt_log_info("Normal quit\n");
 
-    event_base_loopbreak(cl->base);
+	event_base_loopbreak(cl->base);
 }
 
-
-static void on_publish(struct umqtt_client *cl, const char *topic, int topic_len,
+static void
+on_publish(struct umqtt_client *cl, const char *topic, int topic_len,
     const void *payload, int payloadlen)
 {
-    umqtt_log_info("on_publish: topic:[%.*s] payload:[%.*s]\n", topic_len, topic,
-        payloadlen, (char *)payload);
+	umqtt_log_info("on_publish: topic:[%.*s] payload:[%.*s]\n",
+	    topic_len, topic, payloadlen, (char *)payload);
 }
 
-static void on_pingresp(struct umqtt_client *cl)
+static void
+on_pingresp(struct umqtt_client *cl)
 {
 }
 
-static void on_error(struct umqtt_client *cl, int err, const char *msg)
+static void
+on_error(struct umqtt_client *cl, int err, const char *msg)
 {
-    umqtt_log_err("on_error: %d: %s\n", err, msg);
+	umqtt_log_err("on_error: %d: %s\n", err, msg);
 
-    start_reconnect(cl->base);
-    free(cl);
+	start_reconnect(cl->base);
+	free(cl);
 }
 
-static void on_close(struct umqtt_client *cl)
+static void
+on_close(struct umqtt_client *cl)
 {
-    umqtt_log_info("on_close\n");
+	umqtt_log_info("on_close\n");
 
-    start_reconnect(cl->base);
-    free(cl);
+	start_reconnect(cl->base);
+	free(cl);
 }
 
-static void on_net_connected(struct umqtt_client *cl)
+static void
+on_net_connected(struct umqtt_client *cl)
 {
-    umqtt_log_info("on_net_connected\n");
+	umqtt_log_info("on_net_connected\n");
 
-    if (cl->connect(cl, &cfg.options) < 0) {
-        umqtt_log_err("connect failed\n");
+	if (cl->connect(cl, &cfg.options) < 0) {
+		umqtt_log_err("connect failed\n");
 
-        start_reconnect(cl->base);
-        free(cl);
-    }
+		start_reconnect(cl->base);
+		free(cl);
+	}
 }
 
-static void do_connect(int nope, short revents, void *arg)
+static void
+do_connect(int nope, short revents, void *arg)
 {
-    struct event_base *base = arg;
-    struct umqtt_client *cl;
+	struct event_base *base = arg;
+	struct umqtt_client *cl;
 
-    cl = umqtt_new(base, cfg.host, cfg.port, cfg.ssl);
-    if (!cl) {
-        start_reconnect(base);
-        return;
-    }
+	cl = umqtt_new(base, cfg.host, cfg.port, cfg.ssl);
+	if (!cl) {
+		start_reconnect(base);
+		return;
+	}
 
-    cl->on_net_connected = on_net_connected;
-    cl->on_conack = on_conack;
-    cl->on_suback = on_suback;
-    cl->on_unsuback = on_unsuback;
-    cl->on_publish = on_publish;
-    cl->on_pingresp = on_pingresp;
-    cl->on_error = on_error;
-    cl->on_close = on_close;
+	cl->on_net_connected = on_net_connected;
+	cl->on_conack = on_conack;
+	cl->on_suback = on_suback;
+	cl->on_unsuback = on_unsuback;
+	cl->on_publish = on_publish;
+	cl->on_pingresp = on_pingresp;
+	cl->on_error = on_error;
+	cl->on_close = on_close;
 
-    umqtt_log_info("Start connect...\n");
+	umqtt_log_info("Start connect...\n");
 }
 
-static void signal_cb(int nope, short events, void *arg)
+static void
+signal_cb(int nope, short events, void *arg)
 {
-    event_base_loopbreak(arg);
+	event_base_loopbreak(arg);
 }
 
-static void usage(const char *prog)
+static void
+usage(const char *prog)
 {
-    fprintf(stderr, "Usage: %s [option]\n"
-        "      -h host      # Default is 'localhost'\n"
-        "      -p port      # Default is 1883\n"
-        "      -i ClientId  # Default is 'libumqtt-Test\n"
-        "      -s           # Use ssl\n"
-        "      -a           # Auto reconnect to the server\n"
-        "      -d           # enable debug messages\n"
-        , prog);
-    exit(1);
+	fprintf(stderr, "Usage: %s [option]\n"
+	    "      -h host      # Default is 'localhost'\n"
+	    "      -p port      # Default is 1883\n"
+	    "      -i ClientId  # Default is 'libumqtt-Test\n"
+	    "      -s           # Use ssl\n"
+	    "      -a           # Auto reconnect to the server\n"
+	    "      -d           # enable debug messages\n"
+	    , prog);
+	exit(1);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    struct event_base *base;
-    struct event signal_watcher;
-    static const struct timeval connect_timer = { 0, 100000 };
-    int opt;
+	struct event_base *base;
+	struct event signal_watcher;
+	static const struct timeval connect_timer = { 0, 100000 };
+	int opt;
 
-    while ((opt = getopt(argc, argv, "h:i:p:sad")) != -1) {
-        switch (opt) {
-        case 'h':
-            cfg.host = optarg;
-            break;
-        case 'p':
-            cfg.port = optarg;
-            break;
-        case 's':
-            cfg.ssl = true;
-            break;
-        case 'a':
-            cfg.auto_reconnect = true;
-            break;
-        case 'i':
-            cfg.options.client_id = optarg;
-            break;
-        case 'd':
-            umqtt_log_threshold(LOG_DEBUG);
-            break;
-        default: /* '?' */
-            usage(argv[0]);
-        }
-    }
+	while ((opt = getopt(argc, argv, "h:i:p:sad")) != -1) {
+		switch (opt) {
+		case 'h':
+			cfg.host = optarg;
+			break;
+		case 'p':
+			cfg.port = optarg;
+			break;
+		case 's':
+			cfg.ssl = true;
+			break;
+		case 'a':
+			cfg.auto_reconnect = true;
+			break;
+		case 'i':
+			cfg.options.client_id = optarg;
+			break;
+		case 'd':
+			umqtt_log_threshold(LOG_DEBUG);
+			break;
+		default: /* '?' */
+			usage(argv[0]);
+		}
+	}
 
-    if (!cfg.options.client_id)
-        cfg.options.client_id = "libumqtt-Test";
+	if (!cfg.options.client_id)
+		cfg.options.client_id = "libumqtt-Test";
 
-    base = event_init();
+	base = event_init();
 
-    signal_set(&signal_watcher, SIGINT, signal_cb, base);
-    event_base_set(base, &signal_watcher);
-    signal_add(&signal_watcher, NULL);
+	signal_set(&signal_watcher, SIGINT, signal_cb, base);
+	event_base_set(base, &signal_watcher);
+	signal_add(&signal_watcher, NULL);
 
-    evtimer_set(&reconnect_timer, do_connect, base);
-    event_base_set(base, &reconnect_timer);
-    evtimer_add(&reconnect_timer, &connect_timer);
+	evtimer_set(&reconnect_timer, do_connect, base);
+	event_base_set(base, &reconnect_timer);
+	evtimer_add(&reconnect_timer, &connect_timer);
 
-    umqtt_log_info("libumqttc version %s\n", UMQTT_VERSION_STRING);
+	umqtt_log_info("libumqttc version %s\n", UMQTT_VERSION_STRING);
 
-    event_base_dispatch(base);
+	event_base_dispatch(base);
     
-    return 0;
+	return (0);
 }
-
