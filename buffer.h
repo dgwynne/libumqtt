@@ -86,7 +86,7 @@ buffer_tailroom(const struct buffer *b)
 static inline void *
 buffer_data(const struct buffer *b)
 {
-	return b->data;
+	return (b->data);
 }
 
 static inline void
@@ -249,7 +249,7 @@ int	buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
 static inline int
 buffer_put_fd(struct buffer *b, int fd, ssize_t len, bool *eof)
 {
-	return buffer_put_fd_ex(b, fd, len, eof, NULL, NULL);
+	return (buffer_put_fd_ex(b, fd, len, eof, NULL, NULL));
 }
 
 /**
@@ -298,7 +298,7 @@ buffer_pull_u16(struct buffer *b)
 static inline uint16_t
 buffer_pull_u16be(struct buffer *b)
 {
-	return be16toh(buffer_pull_u16(b));
+	return (be16toh(buffer_pull_u16(b)));
 }
 
 static inline uint16_t
@@ -398,7 +398,7 @@ buffer_get_u32(struct buffer *b, ssize_t offset)
 	if (buffer_length(b) > offset + 3)
 		val = *((uint32_t *)(b->data + offset));
 
-	return val;
+	return (val);
 }
 
 static inline uint32_t
