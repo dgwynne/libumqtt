@@ -33,285 +33,299 @@
 
 #include "buffer.h"
 
-int buffer_resize(struct buffer *b, size_t size)
+int
+buffer_resize(struct buffer *b, size_t size)
 {
-    uint8_t *head;
-    size_t new_size = getpagesize();
-    int data_len = buffer_length(b);
+	uint8_t *head;
+	size_t new_size = getpagesize();
+	int data_len = buffer_length(b);
 
-    while (new_size < size)
-        new_size <<= 1u;
+	while (new_size < size)
+		new_size <<= 1u;
 
-    if (b->head) {
-        if (buffer_headroom(b) > 0) {
-            memmove(b->head, b->data, data_len);
-            b->data = b->head;
-            b->tail = b->data + data_len;
-        }
+	if (b->head) {
+		if (buffer_headroom(b) > 0) {
+			memmove(b->head, b->data, data_len);
+			b->data = b->head;
+			b->tail = b->data + data_len;
+		}
 
-        head = realloc(b->head, new_size);
-    } else {
-        head = malloc(new_size);
-    }
+		head = realloc(b->head, new_size);
+	} else {
+		head = malloc(new_size);
+	}
 
-    if (!head)
-        return -1;
+	if (!head)
+		return (-1);
 
-    b->head = b->data = head;
-    b->tail = b->data + data_len;
-    b->end = b->head + new_size;
+	b->head = b->data = head;
+	b->tail = b->data + data_len;
+	b->end = b->head + new_size;
 
-    if (b->tail > b->end)
-        b->tail = b->end;
+	if (b->tail > b->end)
+		b->tail = b->end;
 
-    return 0;
+	return 0;
 }
 
-int buffer_init(struct buffer *b, size_t size)
+int
+buffer_init(struct buffer *b, size_t size)
 {
-    memset(b, 0, sizeof(struct buffer));
+	memset(b, 0, sizeof(struct buffer));
 
-    if (size > 0)
-        return buffer_resize(b, size);
+	if (size > 0)
+		return (buffer_resize(b, size));
 
-    return 0;
+	return (0);
 }
 
-void buffer_free(struct buffer *b)
+void
+buffer_free(struct buffer *b)
 {
-    if (b->head) {
-        free(b->head);
-        memset(b, 0, sizeof(struct buffer));
-    }
+	if (b->head) {
+		free(b->head);
+		memset(b, 0, sizeof(struct buffer));
+	}
 }
 
 /**
  * buffer_grow - grow memory of the buffer
  * @return: 0(success), -1(system error), 1(larger than limit)
  */
-static inline int buffer_grow(struct buffer *b, size_t len)
+static inline int
+buffer_grow(struct buffer *b, size_t len)
 {
-    return buffer_resize(b, buffer_size(b) + len);
+	return (buffer_resize(b, buffer_size(b) + len));
 }
 
-void *buffer_put(struct buffer *b, size_t len)
+void *
+buffer_put(struct buffer *b, size_t len)
 {
-    void *tmp;
+	void *tmp;
 
-    if (buffer_length(b) == 0)
-        b->tail = b->data = b->head;
+	if (buffer_length(b) == 0)
+		b->tail = b->data = b->head;
 
-    if (buffer_tailroom(b) < len && buffer_grow(b, len))
-        return NULL;
+	if (buffer_tailroom(b) < len && buffer_grow(b, len))
+		return (NULL);
 
-    tmp = b->tail;
-    b->tail += len;
+	tmp = b->tail;
+	b->tail += len;
 
-    return tmp;
+	return (tmp);
 }
 
-int buffer_put_vprintf(struct buffer *b, const char *fmt, va_list ap)
+int
+buffer_put_vprintf(struct buffer *b, const char *fmt, va_list ap)
 {
-    for (;;) {
-        int ret;
-        va_list local_ap;
-        size_t tail_room = buffer_tailroom(b);
+	for (;;) {
+		int ret;
+		va_list local_ap;
+		size_t tail_room = buffer_tailroom(b);
 
-        va_copy(local_ap, ap);
-        ret = vsnprintf((char *)b->tail, tail_room, fmt, local_ap);
-        va_end(local_ap);
+		va_copy(local_ap, ap);
+		ret = vsnprintf((char *)b->tail, tail_room, fmt, local_ap);
+		va_end(local_ap);
 
-        if (ret < 0)
-            return -1;
+		if (ret < 0)
+			return -1;
 
-        if (ret < tail_room) {
-            b->tail += ret;
-            return 0;
-        }
+		if (ret < tail_room) {
+			b->tail += ret;
+			return 0;
+		}
 
-        if (buffer_grow(b, 1))
-            return -1;
-    }
+		if (buffer_grow(b, 1))
+			return (-1);
+	}
 }
 
-int buffer_put_printf(struct buffer *b, const char *fmt, ...)
+int
+buffer_put_printf(struct buffer *b, const char *fmt, ...)
 {
-    va_list ap;
-    int ret;
+	va_list ap;
+	int ret;
 
-    va_start(ap, fmt);
-    ret = buffer_put_vprintf(b, fmt, ap);
-    va_end(ap);
+	va_start(ap, fmt);
+	ret = buffer_put_vprintf(b, fmt, ap);
+	va_end(ap);
 
-    return ret;
+	return (ret);
 }
 
-int buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
-                     int (*rd)(int fd, void *buf, size_t count, void *arg), void *arg)
+int
+buffer_put_fd_ex(struct buffer *b, int fd, ssize_t len, bool *eof,
+    int (*rd)(int fd, void *buf, size_t count, void *arg), void *arg)
 {
-    ssize_t remain;
+	ssize_t remain;
 
-    if (len < 0)
-        len = INT_MAX;
+	if (len < 0)
+		len = INT_MAX;
 
-    remain = len;
-    *eof = false;
+	remain = len;
+	*eof = false;
 
-    do {
-        size_t tail_room = buffer_tailroom(b);
-        size_t want;
-        ssize_t ret;
+	do {
+		size_t tail_room = buffer_tailroom(b);
+		size_t want;
+		ssize_t ret;
 
-        if (!tail_room) {
-            ret = buffer_grow(b, 1);
-            if (ret < 0)
-                return -1;
-            if (ret > 0)
-                break;
-            tail_room = buffer_tailroom(b);
-        }
+		if (!tail_room) {
+			ret = buffer_grow(b, 1);
+			if (ret < 0)
+				return (-1);
+			if (ret > 0)
+				break;
+			tail_room = buffer_tailroom(b);
+		}
 
-        want = tail_room;
-        if (want > remain)
-            want = remain;
+		want = tail_room;
+		if (want > remain)
+			want = remain;
 
-        if (rd) {
-            ret = rd(fd, b->tail, want, arg);
-            if (ret == P_FD_ERR)
-                return -1;
-            else if (ret == P_FD_PENDING)
-                break;
-        } else {
-            ret = read(fd, b->tail, want);
-            if (ret < 0) {
-                if (errno == EINTR)
-                    continue;
+		if (rd) {
+			ret = rd(fd, b->tail, want, arg);
+			if (ret == P_FD_ERR)
+				return (-1);
+			else if (ret == P_FD_PENDING)
+				break;
+		} else {
+			ret = read(fd, b->tail, want);
+			if (ret < 0) {
+				if (errno == EINTR)
+					continue;
 
-                if (errno == EAGAIN || errno == ENOTCONN)
-                    break;
+				if (errno == EAGAIN || errno == ENOTCONN)
+					break;
 
-                return -1;
-            }
-        }
+				return -1;
+			}
+		}
 
-        if (!ret) {
-            *eof = true;
-            break;
-        }
+		if (!ret) {
+			*eof = true;
+			break;
+		}
 
-        b->tail += ret;
-        remain -= ret;
-    } while (remain);
+		b->tail += ret;
+		remain -= ret;
+	} while (remain);
 
-    return len - remain;
+	return (len - remain);
 }
 
-void buffer_truncate(struct buffer *b, size_t len)
+void
+buffer_truncate(struct buffer *b, size_t len)
 {
-    if (buffer_length(b) > len) {
-        b->tail = b->data + len;
-        buffer_reclaim(b);
-    }
+	if (buffer_length(b) > len) {
+		b->tail = b->data + len;
+		buffer_reclaim(b);
+	}
 }
 
-size_t buffer_pull(struct buffer *b, void *dest, size_t len)
+size_t
+buffer_pull(struct buffer *b, void *dest, size_t len)
 {
-    if (len > buffer_length(b))
-        len = buffer_length(b);
+	if (len > buffer_length(b))
+		len = buffer_length(b);
 
-    if (dest)
-        memcpy(dest, b->data, len);
+	if (dest)
+		memcpy(dest, b->data, len);
 
-    b->data += len;
+	b->data += len;
 
-    buffer_reclaim(b);
+	buffer_reclaim(b);
 
-    return len;
+	return (len);
 }
 
-int buffer_pull_to_fd_ex(struct buffer *b, int fd, ssize_t len,
-                         int (*wr)(int fd, void *buf, size_t count, void *arg), void *arg)
+int
+buffer_pull_to_fd_ex(struct buffer *b, int fd, ssize_t len,
+    int (*wr)(int fd, void *buf, size_t count, void *arg), void *arg)
 {
-    ssize_t remain;
+	ssize_t remain;
 
-    if (len < 0)
-        len = buffer_length(b);
+	if (len < 0)
+		len = buffer_length(b);
 
-    remain = len;
+	remain = len;
 
-    if (remain > buffer_length(b))
-        remain = buffer_length(b);
+	if (remain > buffer_length(b))
+		remain = buffer_length(b);
 
-    while (remain > 0) {
-        ssize_t ret;
+	while (remain > 0) {
+		ssize_t ret;
 
-        if (wr) {
-            ret = wr(fd, b->data, remain, arg);
-            if (ret == P_FD_ERR)
-                return -1;
-            else if (ret == P_FD_PENDING)
-                break;
-        } else {
-            ret = write(fd, b->data, remain);
-            if (ret < 0) {
-                if (errno == EINTR)
-                    continue;
+		if (wr) {
+			ret = wr(fd, b->data, remain, arg);
+			if (ret == P_FD_ERR)
+				return (-1);
+			else if (ret == P_FD_PENDING)
+				break;
+		} else {
+			ret = write(fd, b->data, remain);
+			if (ret < 0) {
+				if (errno == EINTR)
+					continue;
 
-                if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN)
-                    break;
+				if (errno == EAGAIN || errno == EWOULDBLOCK ||
+				    errno == ENOTCONN)
+					break;
 
-                return -1;
-            }
-        }
+				return (-1);
+			}
+		}
 
-        remain -= ret;
-        b->data += ret;
-    }
+		remain -= ret;
+		b->data += ret;
+	}
 
-    buffer_reclaim(b);
+	buffer_reclaim(b);
 
-    return len - remain;
+	return (len - remain);
 }
 
-void buffer_hexdump(struct buffer *b, size_t offset, size_t len)
+void
+buffer_hexdump(struct buffer *b, size_t offset, size_t len)
 {
-    int i;
-    size_t data_len = buffer_length(b);
-    uint8_t *data = buffer_data(b);
+	int i;
+	size_t data_len = buffer_length(b);
+	uint8_t *data = buffer_data(b);
 
-    if (offset > data_len - 1)
-        return;
+	if (offset > data_len - 1)
+		return;
 
-    if (len > data_len)
-        len = data_len;
+	if (len > data_len)
+		len = data_len;
 
-    for (i = offset; i < len; i++) {
-        printf("%02X ", data[i]);
-        if (i && i % 16 == 0)
-            printf("\n");
-    }
-    printf("\n");
+	for (i = offset; i < len; i++) {
+		printf("%02X ", data[i]);
+		if (i && i % 16 == 0)
+			printf("\n");
+	}
+	printf("\n");
 }
 
-int buffer_find(struct buffer *b, size_t offset, size_t limit, void *sep, size_t seplen)
+int
+buffer_find(struct buffer *b, size_t offset, size_t limit,
+    void *sep, size_t seplen)
 {
-    const uint8_t *begin = b->data;
-    const uint8_t *end;
+	const uint8_t *begin = b->data;
+	const uint8_t *end;
 
-    if (offset >= buffer_length(b))
-        return -1;
+	if (offset >= buffer_length(b))
+		return -1;
 
-    if (limit == 0 || limit > buffer_length(b))
-        limit = buffer_length(b);
+	if (limit == 0 || limit > buffer_length(b))
+		limit = buffer_length(b);
 
-    end = begin + limit - seplen;
+	end = begin + limit - seplen;
 
-    for (; begin <= end; ++begin) {
-        if (begin[0] == ((uint8_t *)sep)[0] &&
-                !memcmp(begin + 1, sep + 1, seplen - 1))
-            return begin - b->data;
-    }
+	for (; begin <= end; ++begin) {
+		if (begin[0] == ((uint8_t *)sep)[0] &&
+		    !memcmp(begin + 1, sep + 1, seplen - 1))
+			return (begin - b->data);
+	}
 
-    return -1;
+	return -1;
 }
-
