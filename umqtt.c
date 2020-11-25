@@ -519,17 +519,17 @@ static void umqtt_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents
     struct umqtt_client *cl = container_of(w, struct umqtt_client, timer);
     ev_tstamp now = ev_now(loop);
 
-    if (unlikely(cl->state < UMQTT_STATE_PARSE_FH)) {
+    if (cl->state < UMQTT_STATE_PARSE_FH) {
         if (now - cl->start_time > UMQTT_MAX_CONNECT_TIME) {
             umqtt_error(cl, UMQTT_ERROR_CONNECT, "Connect timeout");
             return;
         }
     }
 
-    if (unlikely(!cl->connection_accepted))
+    if (!cl->connection_accepted)
         return;
 
-    if (unlikely(cl->wait_pingresp)) {
+    if (cl->wait_pingresp) {
         if (now - cl->last_ping < 3)
             return;
 
@@ -765,7 +765,7 @@ static void umqtt_io_write_cb(struct ev_loop *loop, struct ev_io *w, int revents
     }
 
 #if UMQTT_SSL_SUPPORT
-    if (unlikely(cl->state == UMQTT_STATE_SSL_HANDSHAKE)) {
+    if (cl->state == UMQTT_STATE_SSL_HANDSHAKE) {
         ret = umqtt_ssl_handshake(cl->ssl);
         if (ret == -1) {
             umqtt_error(cl, UMQTT_ERROR_SSL_HANDSHAKE, "ssl handshake failed");
