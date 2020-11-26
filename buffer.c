@@ -44,20 +44,14 @@ buffer_resize(struct buffer *b, size_t size)
 	size_t new_size;
 	int data_len = buffer_length(b);
 
-	new_size = roundup(size, getpagesize());
-
-	if (b->head) {
-		if (buffer_headroom(b) > 0) {
-			memmove(b->head, b->data, data_len);
-			b->data = b->head;
-			b->tail = b->data + data_len;
-		}
-
-		head = realloc(b->head, new_size);
-	} else {
-		head = malloc(new_size);
+	if (buffer_headroom(b) > 0) {
+		memmove(b->head, b->data, data_len);
+		b->data = b->head;
+		b->tail = b->data + data_len;
 	}
 
+	new_size = roundup(size, getpagesize());
+	head = realloc(b->head, new_size);
 	if (!head)
 		return (-1);
 
