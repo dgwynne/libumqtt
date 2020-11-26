@@ -79,10 +79,8 @@ buffer_init(struct buffer *b, size_t size)
 void
 buffer_free(struct buffer *b)
 {
-	if (b->head) {
-		free(b->head);
-		memset(b, 0, sizeof(struct buffer));
-	}
+	free(b->head);
+	memset(b, 0, sizeof(struct buffer));
 }
 
 /**
