@@ -189,7 +189,7 @@ buffer_put_u64le(struct buffer *b, uint64_t val)
 static inline int
 buffer_put_string(struct buffer *b, const char *s)
 {
-	return (buffer_put_data(b, &s, strlen(s)) != NULL ? 0 : -1);
+	return (buffer_put_data(b, s, strlen(s)) != NULL ? 0 : -1);
 }
 
 int	buffer_put_vprintf(struct buffer *b, const char *fmt, va_list ap)
