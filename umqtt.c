@@ -122,8 +122,9 @@ umqtt_error(struct umqtt_client *cl, int err, const char *msg)
 static inline void
 umqtt_put_string(struct buffer *b, const char *str)
 {
-	buffer_put_u16(b, htons(strlen(str)));
-	buffer_put_string(b, str);
+	size_t len = strlen(str);
+	buffer_put_u16(b, htons(len));
+	buffer_put_data(b, str, len);
 }
 
 static void
