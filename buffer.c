@@ -33,15 +33,18 @@
 
 #include "buffer.h"
 
+#ifndef roundup
+#define roundup(x, y)   ((((x)+((y)-1))/(y))*(y))
+#endif
+
 int
 buffer_resize(struct buffer *b, size_t size)
 {
 	uint8_t *head;
-	size_t new_size = getpagesize();
+	size_t new_size;
 	int data_len = buffer_length(b);
 
-	while (new_size < size)
-		new_size <<= 1u;
+	new_size = roundup(size, getpagesize());
 
 	if (b->head) {
 		if (buffer_headroom(b) > 0) {
