@@ -139,51 +139,15 @@ buffer_put_u16(struct buffer *b, uint16_t val)
 }
 
 static inline int
-buffer_put_u16be(struct buffer *b, uint16_t val)
-{
-	return (buffer_put_u16(b, htobe16(val)));
-}
-
-static inline int
-buffer_put_u16le(struct buffer *b, uint16_t val)
-{
-	return (buffer_put_u16(b, htole16(val)));
-}
-
-static inline int
 buffer_put_u32(struct buffer *b, uint32_t val)
 {
 	return (buffer_put_data(b, &val, sizeof(val)) != NULL ? 0 : -1);
 }
 
 static inline int
-buffer_put_u32be(struct buffer *b, uint32_t val)
-{
-	return (buffer_put_u32(b, htobe32(val)));
-}
-
-static inline int
-buffer_put_u32le(struct buffer *b, uint32_t val)
-{
-	return (buffer_put_u32(b, htole32(val)));
-}
-
-static inline int
 buffer_put_u64(struct buffer *b, uint64_t val)
 {
 	return (buffer_put_data(b, &val, sizeof(val)) != NULL ? 0 : -1);
-}
-
-static inline int
-buffer_put_u64be(struct buffer *b, uint64_t val)
-{
-	return (buffer_put_u64(b, htobe64(val)));
-}
-
-static inline int
-buffer_put_u64le(struct buffer *b, uint64_t val)
-{
-	return (buffer_put_u64(b, htole64(val)));
 }
 
 static inline int
@@ -264,17 +228,6 @@ buffer_get_u16(struct buffer *b, size_t offset)
 	return (val);
 }
 
-static inline uint16_t buffer_get_u16be(struct buffer *b, size_t offset)
-{
-	return (be16toh(buffer_get_u16(b, offset)));
-}
-
-static inline uint16_t
-buffer_get_u16le(struct buffer *b, size_t offset)
-{
-	return (le16toh(buffer_get_u16(b, offset)));
-}
-
 static inline uint32_t
 buffer_get_u32(struct buffer *b, size_t offset)
 {
@@ -285,18 +238,6 @@ buffer_get_u32(struct buffer *b, size_t offset)
 	return (val);
 }
 
-static inline uint32_t
-buffer_get_u32be(struct buffer *b, size_t offset)
-{
-	return (be32toh(buffer_get_u32(b, offset)));
-}
-
-static inline uint32_t
-buffer_get_u32le(struct buffer *b, size_t offset)
-{
-	return (le32toh(buffer_get_u32(b, offset)));
-}
-
 static inline uint64_t
 buffer_get_u64(struct buffer *b, size_t offset)
 {
@@ -305,18 +246,6 @@ buffer_get_u64(struct buffer *b, size_t offset)
 	(void)buffer_get(b, offset, &val, sizeof(val));
 
 	return (val);
-}
-
-static inline uint64_t
-buffer_get_u64be(struct buffer *b, size_t offset)
-{
-	return (be64toh(buffer_get_u64(b, offset)));
-}
-
-static inline uint64_t
-buffer_get_u64le(struct buffer *b, size_t offset)
-{
-	return (le64toh(buffer_get_u64(b, offset)));
 }
 
 /**
