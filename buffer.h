@@ -233,81 +233,88 @@ void	buffer_truncate(struct buffer *b, size_t len);
  */
 size_t	buffer_pull(struct buffer *b, void *dest, size_t len);
 
+static inline int
+buffer_get(struct buffer *b, size_t offset, void *dst, size_t len)
+{
+	if (buffer_length(b) < (offset + len))
+		return (-1);
+
+	memmove(dst, b->data + offset, len);
+
+	return (0);
+}
+
 static inline uint8_t
-buffer_get_u8(struct buffer *b, ssize_t offset)
+buffer_get_u8(struct buffer *b, size_t offset)
 {
 	uint8_t val = 0;
 
-	if (buffer_length(b) > offset)
-		val = b->data[offset];
+	(void)buffer_get(b, offset, &val, sizeof(val));
 
 	return (val);
 }
 
 static inline uint16_t
-buffer_get_u16(struct buffer *b, ssize_t offset)
+buffer_get_u16(struct buffer *b, size_t offset)
 {
 	uint16_t val = 0;
 
-	if (buffer_length(b) > offset + 1)
-		val = *((uint16_t *)(b->data + offset));
+	(void)buffer_get(b, offset, &val, sizeof(val));
 
 	return (val);
 }
 
-static inline uint16_t buffer_get_u16be(struct buffer *b, ssize_t offset)
+static inline uint16_t buffer_get_u16be(struct buffer *b, size_t offset)
 {
 	return (be16toh(buffer_get_u16(b, offset)));
 }
 
 static inline uint16_t
-buffer_get_u16le(struct buffer *b, ssize_t offset)
+buffer_get_u16le(struct buffer *b, size_t offset)
 {
 	return (le16toh(buffer_get_u16(b, offset)));
 }
 
 static inline uint32_t
-buffer_get_u32(struct buffer *b, ssize_t offset)
+buffer_get_u32(struct buffer *b, size_t offset)
 {
 	uint32_t val = 0;
 
-	if (buffer_length(b) > offset + 3)
-		val = *((uint32_t *)(b->data + offset));
+	(void)buffer_get(b, offset, &val, sizeof(val));
 
 	return (val);
 }
 
 static inline uint32_t
-buffer_get_u32be(struct buffer *b, ssize_t offset)
+buffer_get_u32be(struct buffer *b, size_t offset)
 {
 	return (be32toh(buffer_get_u32(b, offset)));
 }
 
 static inline uint32_t
-buffer_get_u32le(struct buffer *b, ssize_t offset)
+buffer_get_u32le(struct buffer *b, size_t offset)
 {
 	return (le32toh(buffer_get_u32(b, offset)));
 }
 
 static inline uint64_t
-buffer_get_u64(struct buffer *b, ssize_t offset)
+buffer_get_u64(struct buffer *b, size_t offset)
 {
 	uint64_t val = 0;
 
-	if (buffer_length(b) > offset + 7)
-		val = *((uint64_t *)(b->data + offset));
+	(void)buffer_get(b, offset, &val, sizeof(val));
 
 	return (val);
 }
 
 static inline uint64_t
-buffer_get_u64be(struct buffer *b, ssize_t offset)
+buffer_get_u64be(struct buffer *b, size_t offset)
 {
 	return (be64toh(buffer_get_u64(b, offset)));
 }
 
 static inline uint64_t
-buffer_get_u64le(struct buffer *b, ssize_t offset)
+buffer_get_u64le(struct buffer *b, size_t offset)
 {
 	return (le64toh(buffer_get_u64(b, offset)));
 }
